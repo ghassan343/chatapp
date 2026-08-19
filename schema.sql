@@ -29,8 +29,12 @@ create table if not exists messages (
   conversation_id uuid not null references conversations(id) on delete cascade,
   role text not null check (role in ('user', 'assistant', 'system')),
   content text not null,
+  image_data text, -- صورة مرفقة مع الرسالة (Base64 Data URL)، اختيارية
   created_at timestamptz not null default now()
 );
+
+-- تحديث لقاعدة بيانات موجودة مسبقاً: إضافة عمود الصورة لو ما كان موجود
+alter table messages add column if not exists image_data text;
 
 -- فهارس لتسريع الاستعلامات المتكررة
 create index if not exists idx_messages_conversation_id on messages(conversation_id);

@@ -71,7 +71,22 @@
       <div id="messagesWrap" class="messages-wrap" style="display:none;"></div>
 
       <div class="composer">
+        <!-- معاينة الصورة المختارة قبل الإرسال -->
+        <div id="imagePreviewWrap" class="image-preview-wrap" style="display:none;">
+          <img id="imagePreview" alt="صورة مرفقة">
+          <button id="removeImageBtn" type="button" class="remove-image-btn" aria-label="إزالة الصورة">✕</button>
+        </div>
+
         <form id="composerForm">
+          <button id="attachBtn" type="button" class="attach-btn" aria-label="إرفاق صورة">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M21 12.5V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8" cy="9" r="1.5" stroke="currentColor" stroke-width="2"/>
+              <path d="M3 15l4.5-4.5a2 2 0 0 1 2.8 0L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M17 15v6M14 18h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <input id="imageInput" type="file" accept="image/*" style="display:none;">
           <textarea id="messageInput" placeholder="اكتب رسالتك..." rows="1"></textarea>
           <button id="sendBtn" type="submit" aria-label="إرسال">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

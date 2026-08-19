@@ -5,7 +5,7 @@
 // الشات نفسها لأنها لازم تكون حية دايماً من السيرفر.
 // ============================================
 
-const CACHE_NAME = 'mohadathati-shell-v1';
+const CACHE_NAME = 'mohadathati-shell-v2';
 const SHELL_FILES = [
   '/',
   '/index.html',
