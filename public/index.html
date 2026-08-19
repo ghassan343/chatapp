@@ -2,8 +2,19 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
 <title>محادثتي</title>
+
+<!-- إعدادات PWA: تسمح للمستخدم يثبت الموقع كتطبيق من المتصفح -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#7A4FE0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="محادثتي">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -30,11 +41,27 @@
       <div id="convList" class="conv-list"></div>
       <div class="sidebar-footer">
         <span id="userNameLabel"></span>
+        <button id="installBtn" class="install-btn" style="display:none;">
+          تثبيت التطبيق
+        </button>
       </div>
     </aside>
 
+    <!-- طبقة تعتيم خلف القائمة الجانبية عند فتحها بالجوال -->
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
     <!-- منطقة المحادثة -->
     <main class="chat-area">
+      <!-- شريط علوي يظهر فقط على الجوال -->
+      <div class="mobile-topbar">
+        <button id="menuToggleBtn" class="menu-toggle-btn" aria-label="القائمة">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <span class="mobile-topbar-title">محادثتي</span>
+      </div>
+
       <div id="emptyState" class="empty-state">
         <div class="empty-mark">م</div>
         <h2>وش بخاطرك اليوم؟</h2>
@@ -57,5 +84,37 @@
   </div>
 
   <script src="app.js"></script>
+  <script>
+    // تسجيل الـ Service Worker (شرط أساسي عشان يقدر المستخدم يثبت الموقع كتطبيق)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+
+    // إظهار زر "تثبيت التطبيق" عند توفر الإمكانية (أندرويد/كروم)
+    let deferredInstallPrompt = null;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (installBtn) installBtn.style.display = 'block';
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (!deferredInstallPrompt) return;
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        installBtn.style.display = 'none';
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      if (installBtn) installBtn.style.display = 'none';
+    });
+  </script>
 </body>
 </html>

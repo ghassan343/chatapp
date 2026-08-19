@@ -23,7 +23,23 @@ const el = {
   composerForm: document.getElementById('composerForm'),
   messageInput: document.getElementById('messageInput'),
   sendBtn: document.getElementById('sendBtn'),
+  menuToggleBtn: document.getElementById('menuToggleBtn'),
+  sidebarOverlay: document.getElementById('sidebarOverlay'),
 };
+
+// ---------------- قائمة الجوال (فتح/إغلاق الشريط الجانبي) ----------------
+function openSidebar() {
+  el.appScreen.classList.add('sidebar-open');
+}
+function closeSidebar() {
+  el.appScreen.classList.remove('sidebar-open');
+}
+if (el.menuToggleBtn) {
+  el.menuToggleBtn.addEventListener('click', openSidebar);
+}
+if (el.sidebarOverlay) {
+  el.sidebarOverlay.addEventListener('click', closeSidebar);
+}
 
 // ---------------- تسجيل الدخول البسيط ----------------
 const savedUser = localStorage.getItem('chatapp_user');
@@ -99,6 +115,7 @@ el.newChatBtn.addEventListener('click', async () => {
   state.conversations.unshift(conv);
   renderConvList();
   openConversation(conv.id);
+  closeSidebar();
 });
 
 async function deleteConversation(id) {
@@ -115,6 +132,7 @@ async function deleteConversation(id) {
 async function openConversation(id) {
   state.activeConvId = id;
   renderConvList();
+  closeSidebar();
   el.emptyState.style.display = 'none';
   el.messagesWrap.style.display = 'block';
   el.messagesWrap.innerHTML = '<div style="text-align:center;color:var(--ink-soft);padding:20px;font-size:13px;">...جاري التحميل</div>';
