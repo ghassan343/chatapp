@@ -1,0 +1,12 @@
+[build]
+  # مجلد الواجهة الأمامية اللي بينشره Netlify كموقع static
+  publish = "public"
+  # مجلد الفنكشنز (السيرفر الخلفي)
+  functions = "netlify/functions"
+  command = "npm install"
+
+# أي طلب على /api/... يروح لفنكشن server.js
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/server/:splat"
+  status = 200

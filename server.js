@@ -1,22 +1,22 @@
 // ============================================
-// server.js
-// السيرفر الخلفي: هذا هو الوسيط الوحيد بين المستخدم (المتصفح) وبين
-// كل من Supabase (قاعدة البيانات) و OpenAI (نموذج الذكاء الاصطناعي).
-// المتصفح لا يعرف أبداً مفتاح OpenAI ولا مفتاح Supabase السري.
+// netlify/functions/server.js
+// نفس منطق السيرفر القديم (server.js) لكن بصيغة Netlify Function.
+// Netlify يشغّل هذا الملف كـ endpoint واحد يستقبل كل طلبات /api/*
+// (بدل سيرفر Express دائم الاشتغال، هنا كل طلب يشغّل الفنكشن لحظياً).
 // ============================================
 
-require('dotenv').config();
+const serverless = require('serverless-http');
 const express = require('express');
 const cors = require('cors');
 const { createClient } = require('@supabase/supabase-js');
 const OpenAI = require('openai');
 
 // ---------- التحقق من المتغيرات البيئية ----------
+// تُضاف من: Netlify Dashboard > Site configuration > Environment variables
 const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'OPENAI_API_KEY'];
 for (const key of required) {
   if (!process.env[key]) {
-    console.error(`❌ متغير البيئة مفقود: ${key}. تأكد من ملف .env`);
-    process.exit(1);
+    console.error(`❌ متغير البيئة مفقود: ${key}`);
   }
 }
 
@@ -36,21 +36,21 @@ const MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // تقديم ملفات الواجهة الأمامية
+
+// ملاحظة مهمة: كل الـ routes هنا لازم تبدأ بـ /api لأن Netlify يوجّه
+// أي طلب على /api/* إلى هذا الملف كامل (شوف netlify.toml للتفاصيل).
+const router = express.Router();
 
 // ============================================
-// المستخدمون (بسيط جداً - بدون كلمة مرور، فقط اسم لتمييز المحادثات)
+// المستخدمون
 // ============================================
-
-// إنشاء أو استرجاع مستخدم بالاسم
-app.post('/api/users', async (req, res) => {
+router.post('/users', async (req, res) => {
   try {
     const { name } = req.body;
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'الاسم مطلوب' });
     }
 
-    // نبحث إذا كان المستخدم موجود مسبقاً بنفس الاسم
     const { data: existing, error: findErr } = await supabase
       .from('users')
       .select('*')
@@ -77,9 +77,7 @@ app.post('/api/users', async (req, res) => {
 // ============================================
 // المحادثات (Conversations)
 // ============================================
-
-// جلب كل محادثات مستخدم معيّن
-app.get('/api/conversations', async (req, res) => {
+router.get('/conversations', async (req, res) => {
   try {
     const { user_id } = req.query;
     if (!user_id) return res.status(400).json({ error: 'user_id مطلوب' });
@@ -98,8 +96,7 @@ app.get('/api/conversations', async (req, res) => {
   }
 });
 
-// إنشاء محادثة جديدة
-app.post('/api/conversations', async (req, res) => {
+router.post('/conversations', async (req, res) => {
   try {
     const { user_id, title } = req.body;
     if (!user_id) return res.status(400).json({ error: 'user_id مطلوب' });
@@ -118,8 +115,7 @@ app.post('/api/conversations', async (req, res) => {
   }
 });
 
-// حذف محادثة
-app.delete('/api/conversations/:id', async (req, res) => {
+router.delete('/conversations/:id', async (req, res) => {
   try {
     const { error } = await supabase
       .from('conversations')
@@ -137,9 +133,7 @@ app.delete('/api/conversations/:id', async (req, res) => {
 // ============================================
 // الرسائل (Messages)
 // ============================================
-
-// جلب كل رسائل محادثة معيّنة
-app.get('/api/conversations/:id/messages', async (req, res) => {
+router.get('/conversations/:id/messages', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('messages')
@@ -155,9 +149,7 @@ app.get('/api/conversations/:id/messages', async (req, res) => {
   }
 });
 
-// إرسال رسالة جديدة + الحصول على رد الذكاء الاصطناعي
-// هذا هو الـ endpoint الأهم في المشروع
-app.post('/api/conversations/:id/messages', async (req, res) => {
+router.post('/conversations/:id/messages', async (req, res) => {
   const conversationId = req.params.id;
   try {
     const { content } = req.body;
@@ -165,15 +157,12 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
       return res.status(400).json({ error: 'محتوى الرسالة مطلوب' });
     }
 
-    // 1) نخزن رسالة المستخدم في قاعدة البيانات
     const { error: insertUserErr } = await supabase
       .from('messages')
       .insert({ conversation_id: conversationId, role: 'user', content });
 
     if (insertUserErr) throw insertUserErr;
 
-    // 2) نجيب كامل تاريخ المحادثة من قاعدة البيانات
-    //    (هذا يعطي النموذج "الذاكرة" الكاملة للمحادثة)
     const { data: history, error: historyErr } = await supabase
       .from('messages')
       .select('role, content')
@@ -182,7 +171,6 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 
     if (historyErr) throw historyErr;
 
-    // 3) نرسل التاريخ كامل إلى OpenAI ونطلب الرد
     const completion = await openai.chat.completions.create({
       model: MODEL,
       messages: [
@@ -193,7 +181,6 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 
     const assistantReply = completion.choices[0].message.content;
 
-    // 4) نخزن رد المساعد في قاعدة البيانات
     const { data: savedAssistantMsg, error: insertAssistantErr } = await supabase
       .from('messages')
       .insert({ conversation_id: conversationId, role: 'assistant', content: assistantReply })
@@ -202,7 +189,6 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
 
     if (insertAssistantErr) throw insertAssistantErr;
 
-    // 5) إذا هذه أول رسالة، نحدّث عنوان المحادثة تلقائياً
     if (history.length <= 1) {
       const autoTitle = content.trim().slice(0, 40);
       await supabase
@@ -218,10 +204,6 @@ app.post('/api/conversations/:id/messages', async (req, res) => {
   }
 });
 
-// ============================================
-// تشغيل السيرفر
-// ============================================
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ السيرفر شغال على: http://localhost:${PORT}`);
-});
+app.use('/api', router);
+
+module.exports.handler = serverless(app);

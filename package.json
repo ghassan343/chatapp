@@ -1,18 +1,21 @@
 {
-  "name": "chatgpt-clone-supabase",
+  "name": "chatgpt-clone-supabase-netlify",
   "version": "1.0.0",
-  "description": "تطبيق شات شبيه بـ ChatGPT: الواجهة تتكلم مع السيرفر فقط، والسيرفر يتكلم مع OpenAI ويخزن كل شيء في Supabase",
-  "main": "server.js",
+  "description": "تطبيق شات شبيه بـ ChatGPT — الواجهة static على Netlify، والسيرفر شغال كـ Netlify Function",
+  "main": "netlify/functions/server.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "netlify dev"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "openai": "^4.67.3"
+    "openai": "^4.67.3",
+    "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.38.0"
   }
 }
